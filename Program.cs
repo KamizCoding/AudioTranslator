@@ -27,7 +27,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 104857600; 
+    options.MultipartBodyLengthLimit = 104857600;
 });
 
 builder.Services.AddCors(options =>
@@ -46,14 +46,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Urls.Add($"http://0.0.0.0:{port}");
+
 app.UseCors("AllowReactApp");
-
 app.UseAuthorization();
-
 app.MapControllers();
 
 Console.WriteLine("🚀 Audio Translator API is running on:");
-Console.WriteLine($"   ➤ HTTP: http://localhost:5167");
-Console.WriteLine($"   ➤ Swagger UI: http://localhost:5167/swagger");
+Console.WriteLine($"   ➤ HTTP: http://0.0.0.0:{port}");
+Console.WriteLine($"   ➤ Swagger UI: http://0.0.0.0:{port}/swagger");
 
 app.Run();
