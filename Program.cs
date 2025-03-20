@@ -10,9 +10,7 @@ string? apiKeyFromConfig = builder.Configuration["OpenAI:ApiKey"];
 
 string openAiApiKey = (apiKeyFromEnv ?? apiKeyFromConfig ?? string.Empty).Trim();
 
-Console.WriteLine($"DEBUG: OpenAI API Key from Env: {(apiKeyFromEnv?.Length > 10 ? apiKeyFromEnv.Substring(0, 5) + "********" : "Not Set")}");
-Console.WriteLine($"DEBUG: OpenAI API Key from Config: {(apiKeyFromConfig?.Length > 10 ? apiKeyFromConfig.Substring(0, 5) + "********" : "Not Set")}");
-Console.WriteLine($"DEBUG: Final OpenAI API Key: {(openAiApiKey.Length > 10 ? openAiApiKey.Substring(0, 5) + "********" : "Not Set")}");
+Console.WriteLine($"DEBUG: OpenAI API Key: {(openAiApiKey.Length > 10 ? openAiApiKey.Substring(0, 5) + "********" : "Not Set")}");
 
 if (string.IsNullOrEmpty(openAiApiKey) || openAiApiKey == "OPENAI_API_KEY")
 {
@@ -33,7 +31,7 @@ builder.Services.Configure<FormOptions>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-        policy => policy.WithOrigins("http://localhost:5173")
+        policy => policy.AllowAnyOrigin()
                         .AllowAnyMethod()
                         .AllowAnyHeader());
 });
