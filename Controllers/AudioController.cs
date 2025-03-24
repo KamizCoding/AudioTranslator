@@ -24,7 +24,7 @@ namespace AudioTranslatorAPI.Controllers
         }
 
         [HttpPost("translate")]
-        public async Task<IActionResult> TranslateAudio([FromForm] IFormFile file)
+        public async Task<IActionResult> TranslateAudio([FromForm] IFormFile file, [FromForm] string language = "Tamil")
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Invalid file. Please upload an audio file.");
@@ -41,7 +41,7 @@ namespace AudioTranslatorAPI.Controllers
                 return StatusCode(500, "Error in transcription.");
             }
 
-            var translatedText = await TranslateToTamil(transcription);
+            var translatedText = await TranslateToLanguage(transcription, language);
             System.IO.File.Delete(tempPath);
 
             return Ok(new { original_text = transcription, translated_text = translatedText });
@@ -55,7 +55,6 @@ namespace AudioTranslatorAPI.Controllers
             fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/mpeg");
 
             requestContent.Add(fileContent, "file", "audio.mp3");
-
             requestContent.Add(new StringContent("whisper-1"), "model");
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
@@ -75,17 +74,16 @@ namespace AudioTranslatorAPI.Controllers
             return textElement.GetString();
         }
 
-
-        private async Task<string> TranslateToTamil(string englishText)
+        private async Task<string> TranslateToLanguage(string englishText, string targetLanguage)
         {
             var requestBody = new
             {
                 model = "gpt-4",
                 messages = new[]
                 {
-            new { role = "system", content = "You are a translator that translates English to Tamil." },
-            new { role = "user", content = $"Translate this to Tamil: {englishText}" }
-        }
+                    new { role = "system", content = $"You are a translator that translates English to {targetLanguage}." },
+                    new { role = "user", content = $"Translate this to {targetLanguage}: {englishText}" }
+                }
             };
 
             var content = new StringContent(JsonSerializer.Serialize(requestBody));
@@ -118,6 +116,5 @@ namespace AudioTranslatorAPI.Controllers
                 throw new Exception($"Error parsing OpenAI GPT-4 response: {jsonResponse}. Exception: {ex.Message}");
             }
         }
-
     }
 }
