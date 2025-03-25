@@ -24,7 +24,10 @@ namespace AudioTranslatorAPI.Controllers
         }
 
         [HttpPost("translate")]
-        public async Task<IActionResult> TranslateAudio([FromForm] IFormFile file, [FromForm] string language = "Tamil")
+        public async Task<IActionResult> TranslateAudio(
+            [FromForm] IFormFile file,
+            [FromForm] string audioLanguage = "English",
+            [FromForm] string language = "Tamil")
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Invalid file. Please upload an audio file.");
@@ -41,7 +44,12 @@ namespace AudioTranslatorAPI.Controllers
                 return StatusCode(500, "Error in transcription.");
             }
 
-            var translatedText = await TranslateToLanguage(transcription, language);
+            // Force translation to English if audio is in Tamil
+            var targetLanguage = audioLanguage.Equals("Tamil", StringComparison.OrdinalIgnoreCase)
+                ? "English"
+                : language;
+
+            var translatedText = await TranslateToLanguage(transcription, targetLanguage);
             System.IO.File.Delete(tempPath);
 
             return Ok(new { original_text = transcription, translated_text = translatedText });
@@ -74,15 +82,15 @@ namespace AudioTranslatorAPI.Controllers
             return textElement.GetString();
         }
 
-        private async Task<string> TranslateToLanguage(string englishText, string targetLanguage)
+        private async Task<string> TranslateToLanguage(string originalText, string targetLanguage)
         {
             var requestBody = new
             {
                 model = "gpt-4",
                 messages = new[]
                 {
-                    new { role = "system", content = $"You are a translator that translates English to {targetLanguage}." },
-                    new { role = "user", content = $"Translate this to {targetLanguage}: {englishText}" }
+                    new { role = "system", content = $"You are a translator that translates to {targetLanguage}." },
+                    new { role = "user", content = $"Translate this to {targetLanguage}: {originalText}" }
                 }
             };
 
