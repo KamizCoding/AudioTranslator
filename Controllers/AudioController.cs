@@ -40,11 +40,8 @@ namespace AudioTranslatorAPI.Controllers
 
             var transcription = await TranscribeAudio(tempPath);
             if (string.IsNullOrEmpty(transcription))
-            {
                 return StatusCode(500, "Error in transcription.");
-            }
 
-            // Force translation to English if audio is in Tamil
             var targetLanguage = audioLanguage.Equals("Tamil", StringComparison.OrdinalIgnoreCase)
                 ? "English"
                 : language;
@@ -55,14 +52,36 @@ namespace AudioTranslatorAPI.Controllers
             return Ok(new { original_text = transcription, translated_text = translatedText });
         }
 
+        [HttpPost("mic-translate")]
+        public async Task<IActionResult> MicTranslate([FromForm] IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("No audio file received.");
+
+            var tempPath = Path.GetTempFileName();
+            using (var stream = new FileStream(tempPath, FileMode.Create))
+            {
+                await file.CopyToAsync(stream);
+            }
+
+            var transcription = await TranscribeAudio(tempPath);
+            if (string.IsNullOrEmpty(transcription))
+                return StatusCode(500, "Error in transcription.");
+
+            var translatedText = await TranslateToLanguage(transcription, "English");
+            System.IO.File.Delete(tempPath);
+
+            return Ok(new { original_text = transcription, translated_text = translatedText });
+        }
+
         private async Task<string> TranscribeAudio(string filePath)
         {
             using var requestContent = new MultipartFormDataContent();
             using var fileStream = new FileStream(filePath, FileMode.Open);
             var fileContent = new StreamContent(fileStream);
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/mpeg");
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/webm");
 
-            requestContent.Add(fileContent, "file", "audio.mp3");
+            requestContent.Add(fileContent, "file", "mic_audio.webm");
             requestContent.Add(new StringContent("whisper-1"), "model");
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
@@ -73,11 +92,8 @@ namespace AudioTranslatorAPI.Controllers
             Console.WriteLine("DEBUG: Whisper API Response => " + jsonResponse);
 
             using var jsonDoc = JsonDocument.Parse(jsonResponse);
-
             if (!jsonDoc.RootElement.TryGetProperty("text", out JsonElement textElement))
-            {
                 throw new Exception("OpenAI Whisper response does not contain 'text' field. Full response: " + jsonResponse);
-            }
 
             return textElement.GetString();
         }
@@ -104,25 +120,16 @@ namespace AudioTranslatorAPI.Controllers
 
             Console.WriteLine("DEBUG: GPT-4 Response => " + jsonResponse);
 
-            try
+            using var jsonDoc = JsonDocument.Parse(jsonResponse);
+            if (jsonDoc.RootElement.TryGetProperty("choices", out JsonElement choicesElement) &&
+                choicesElement.GetArrayLength() > 0 &&
+                choicesElement[0].TryGetProperty("message", out JsonElement messageElement) &&
+                messageElement.TryGetProperty("content", out JsonElement contentElement))
             {
-                using var jsonDoc = JsonDocument.Parse(jsonResponse);
-                if (jsonDoc.RootElement.TryGetProperty("choices", out JsonElement choicesElement) &&
-                    choicesElement.GetArrayLength() > 0 &&
-                    choicesElement[0].TryGetProperty("message", out JsonElement messageElement) &&
-                    messageElement.TryGetProperty("content", out JsonElement contentElement))
-                {
-                    return contentElement.GetString()?.Trim() ?? throw new Exception("Unexpected null response from OpenAI GPT-4.");
-                }
-                else
-                {
-                    throw new Exception("OpenAI GPT-4 response does not contain the expected 'content' field.");
-                }
+                return contentElement.GetString()?.Trim() ?? throw new Exception("Unexpected null response from OpenAI GPT-4.");
             }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error parsing OpenAI GPT-4 response: {jsonResponse}. Exception: {ex.Message}");
-            }
+
+            throw new Exception("OpenAI GPT-4 response does not contain the expected 'content' field.");
         }
     }
 }
