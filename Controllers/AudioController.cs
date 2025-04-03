@@ -17,11 +17,13 @@ namespace AudioTranslatorAPI.Controllers
         private readonly HttpClient _httpClient;
         private readonly string _openAiApiKey;
 
-        public AudioController(IConfiguration configuration)
+        public AudioController(string openAiApiKey)
         {
-            _httpClient = new HttpClient();
-            _openAiApiKey = configuration["OpenAI:ApiKey"]
-                ?? throw new ArgumentNullException(nameof(_openAiApiKey), "OpenAI API Key is missing.");
+            _httpClient = new HttpClient
+            {
+                Timeout = TimeSpan.FromMinutes(5)
+            };
+            _openAiApiKey = openAiApiKey ?? throw new ArgumentNullException(nameof(openAiApiKey), "OpenAI API Key is missing.");
         }
 
         [HttpPost("translate")]
@@ -59,7 +61,7 @@ namespace AudioTranslatorAPI.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("No audio file received.");
 
-            Console.WriteLine("🔥 Middleware upload received: " + file.FileName); 
+            Console.WriteLine("🔥 Middleware upload received: " + file.FileName);
 
             var tempPath = Path.GetTempFileName();
             using (var stream = new FileStream(tempPath, FileMode.Create))
@@ -89,16 +91,23 @@ namespace AudioTranslatorAPI.Controllers
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
 
-            var response = await _httpClient.PostAsync("https://api.openai.com/v1/audio/transcriptions", requestContent);
-            var jsonResponse = await response.Content.ReadAsStringAsync();
+            try
+            {
+                var response = await _httpClient.PostAsync("https://api.openai.com/v1/audio/transcriptions", requestContent);
+                var jsonResponse = await response.Content.ReadAsStringAsync();
+                Console.WriteLine("DEBUG: Whisper API Response => " + jsonResponse);
 
-            Console.WriteLine("DEBUG: Whisper API Response => " + jsonResponse);
+                using var jsonDoc = JsonDocument.Parse(jsonResponse);
+                if (!jsonDoc.RootElement.TryGetProperty("text", out JsonElement textElement))
+                    throw new Exception("OpenAI Whisper response does not contain 'text' field. Full response: " + jsonResponse);
 
-            using var jsonDoc = JsonDocument.Parse(jsonResponse);
-            if (!jsonDoc.RootElement.TryGetProperty("text", out JsonElement textElement))
-                throw new Exception("OpenAI Whisper response does not contain 'text' field. Full response: " + jsonResponse);
-
-            return textElement.GetString();
+                return textElement.GetString();
+            }
+            catch (TaskCanceledException ex)
+            {
+                Console.WriteLine("❌ Transcription request timed out or was cancelled.");
+                throw;
+            }
         }
 
         private async Task<string> TranslateToLanguage(string originalText, string targetLanguage)
