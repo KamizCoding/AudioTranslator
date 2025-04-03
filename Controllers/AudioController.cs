@@ -58,6 +58,8 @@ namespace AudioTranslatorAPI.Controllers
             if (file == null || file.Length == 0)
                 return BadRequest("No audio file received.");
 
+            Console.WriteLine("🔥 Middleware upload received: " + file.FileName); 
+
             var tempPath = Path.GetTempFileName();
             using (var stream = new FileStream(tempPath, FileMode.Create))
             {
