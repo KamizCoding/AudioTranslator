@@ -17,10 +17,11 @@ namespace AudioTranslatorAPI.Controllers
         private readonly HttpClient _httpClient;
         private readonly string _openAiApiKey;
 
-        public AudioController(string openAiApiKey)
+        public AudioController(IConfiguration configuration)
         {
             _httpClient = new HttpClient();
-            _openAiApiKey = openAiApiKey ?? throw new ArgumentNullException(nameof(openAiApiKey), "OpenAI API Key is missing.");
+            _openAiApiKey = configuration["OpenAI:ApiKey"]
+                ?? throw new ArgumentNullException(nameof(_openAiApiKey), "OpenAI API Key is missing.");
         }
 
         [HttpPost("translate")]
