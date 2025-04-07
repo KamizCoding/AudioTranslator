@@ -33,8 +33,8 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 524288000;
 });
 
-// 👇 Enable serving from wwwroot folder
-builder.WebHost.UseWebRoot("wwwroot");
+// ❌ DO NOT manually set WebRoot — it causes deployment crashes on Render
+// builder.WebHost.UseWebRoot("wwwroot");
 
 // Standard setup
 builder.Services.AddControllers();
@@ -63,7 +63,7 @@ var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
 app.Urls.Add($"http://0.0.0.0:{port}");
 
 app.UseCors("AllowFrontend");
-app.UseStaticFiles();
+app.UseStaticFiles(); 
 app.UseAuthorization();
 app.MapControllers();
 
