@@ -33,6 +33,9 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
     serverOptions.Limits.MaxRequestBodySize = 524288000;
 });
 
+// 👇 Enable serving from wwwroot folder
+builder.WebHost.UseWebRoot("wwwroot");
+
 // Standard setup
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
