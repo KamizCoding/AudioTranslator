@@ -12,6 +12,17 @@
     <PackageReference Include="System.Net.Http.Json" Version="9.0.3" />
   </ItemGroup>
 
-  <ProjectExtensions><VisualStudio><UserProperties appsettings_1json__JsonSchema="https://blockprotocol.org/schemas/block-metadata.json" /></VisualStudio></ProjectExtensions>
+  <!-- ✅ Add this block below to include static files like latest.json -->
+  <ItemGroup>
+    <Content Include="wwwroot\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties appsettings_1json__JsonSchema="https://blockprotocol.org/schemas/block-metadata.json" />
+    </VisualStudio>
+  </ProjectExtensions>
 
 </Project>
