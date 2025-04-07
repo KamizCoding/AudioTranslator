@@ -76,8 +76,25 @@ namespace AudioTranslatorAPI.Controllers
             var translatedText = await TranslateToLanguage(transcription, "English");
             System.IO.File.Delete(tempPath);
 
-            return Ok(new { original_text = transcription, translated_text = translatedText });
+            var resultObject = new
+            {
+                transcribed_text = transcription,
+                translated_text = translatedText,
+                timestamp = DateTime.UtcNow.ToString("o")
+            };
+
+            var jsonPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "results", "latest.json");
+            var jsonDir = Path.GetDirectoryName(jsonPath);
+            if (!Directory.Exists(jsonDir))
+            {
+                Directory.CreateDirectory(jsonDir);
+            }
+
+            await System.IO.File.WriteAllTextAsync(jsonPath, JsonSerializer.Serialize(resultObject, new JsonSerializerOptions { WriteIndented = true }));
+
+            return Ok(resultObject);
         }
+
 
         private async Task<string> TranscribeAudio(string filePath)
         {
