@@ -21,7 +21,7 @@ namespace AudioTranslatorAPI.Controllers
         {
             _httpClient = new HttpClient
             {
-                Timeout = TimeSpan.FromMinutes(5)
+                Timeout = TimeSpan.FromMinutes(15)
             };
             _openAiApiKey = openAiApiKey ?? throw new ArgumentNullException(nameof(openAiApiKey), "OpenAI API Key is missing.");
         }
