@@ -102,11 +102,9 @@ namespace AudioTranslatorAPI.Controllers
             using var requestContent = new MultipartFormDataContent();
             using var fileStream = new FileStream(filePath, FileMode.Open);
             var fileContent = new StreamContent(fileStream);
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/webm");
 
-            // ✅ Set proper MIME type for mp3
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/mpeg");
-
-            requestContent.Add(fileContent, "file", Path.GetFileName(filePath));
+            requestContent.Add(fileContent, "file", "mic_audio.webm");
             requestContent.Add(new StringContent("whisper-1"), "model");
 
             _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", _openAiApiKey);
@@ -118,17 +116,8 @@ namespace AudioTranslatorAPI.Controllers
                 Console.WriteLine("DEBUG: Whisper API Response => " + jsonResponse);
 
                 using var jsonDoc = JsonDocument.Parse(jsonResponse);
-
-                // ✅ Check if OpenAI returned an error
-                if (jsonDoc.RootElement.TryGetProperty("error", out var error))
-                {
-                    var message = error.GetProperty("message").GetString();
-                    throw new Exception($"OpenAI Whisper error: {message}");
-                }
-
-                // ✅ Extract the transcribed text
                 if (!jsonDoc.RootElement.TryGetProperty("text", out JsonElement textElement))
-                    throw new Exception("OpenAI Whisper response does not contain 'text' field.");
+                    throw new Exception("OpenAI Whisper response does not contain 'text' field. Full response: " + jsonResponse);
 
                 return textElement.GetString();
             }
@@ -137,13 +126,7 @@ namespace AudioTranslatorAPI.Controllers
                 Console.WriteLine("❌ Transcription request timed out or was cancelled.");
                 throw;
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine("❌ Transcription failed: " + ex.Message);
-                throw;
-            }
         }
-
 
         private async Task<string> TranslateToLanguage(string originalText, string targetLanguage)
         {
