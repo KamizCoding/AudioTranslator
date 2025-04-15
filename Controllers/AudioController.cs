@@ -104,7 +104,7 @@ namespace AudioTranslatorAPI.Controllers
             var fileContent = new StreamContent(fileStream);
 
             // ✅ Set proper MIME type for mp3
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/mpeg");
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("audio/webm");
 
             requestContent.Add(fileContent, "file", Path.GetFileName(filePath));
             requestContent.Add(new StringContent("whisper-1"), "model");
